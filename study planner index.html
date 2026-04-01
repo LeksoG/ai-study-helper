@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Study Helper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+<style>
+/* ── CSS Variables ── */
+:root {
+  --bg-deep:        #070b18;
+  --accent-blue:    #3b82f6;
+  --accent-purple:  #8b5cf6;
+  --accent-cyan:    #06b6d4;
+  --accent-emerald: #10b981;
+  --glass-bg:       rgba(255,255,255,0.045);
+  --glass-border:   rgba(255,255,255,0.09);
+  --glass-hover:    rgba(255,255,255,0.075);
+  --text-primary:   #f1f5fd;
+  --text-secondary: #8896b0;
+  --text-muted:     #4a5568;
+  --sidebar-w:      240px;
+  --radius-lg:      18px;
+  --radius-md:      12px;
+  --radius-sm:      8px;
+  --transition:     0.22s cubic-bezier(0.4,0,0.2,1);
+  --font-display:   'Sora', sans-serif;
+  --font-body:      'DM Sans', sans-serif;
+  --shadow-card:    0 8px 32px rgba(0,0,0,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+
+/* ── Background Orbs ── */
+.bg-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.25; animation: orb-drift 18s ease-in-out infinite alternate; }
+.orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #3b82f6, transparent 70%); top: -200px; left: -150px; animation-duration: 20s; }
+.orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, #8b5cf6, transparent 70%); bottom: -150px; right: -100px; animation-duration: 25s; animation-delay: -8s; }
+.orb-3 { width: 350px; height: 350px; background: radial-gradient(circle, #06b6d4, transparent 70%); top: 50%; left: 50%; transform: translate(-50%,-50%); animation-duration: 30s; animation-delay: -15s; opacity: 0.12; }
+@keyframes orb-drift {
+  0%   { transform: translate(0,0) scale(1); }
+  33%  { transform: translate(30px,-20px) scale(1.05); }
+  66%  { transform: translate(-20px,25px) scale(0.97); }
+  100% { transform: translate(15px,-10px) scale(1.02); }
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  position: fixed; left: 0; top: 0; bottom: 0;
+  width: var(--sidebar-w); z-index: 100;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 24px 14px;
+  background: rgba(10,14,32,0.75);
+  border-right: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  transition: transform var(--transition);
+}
+.sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 6px 10px 20px; border-bottom: 1px solid var(--glass-border); margin-bottom: 8px; }
+.logo-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 0 24px rgba(59,130,246,0.25); }
+.logo-icon svg { width: 18px; height: 18px; }
+.logo-text { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-md); color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; transition: all var(--transition); position: relative; border: 1px solid transparent; }
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+.nav-item:hover { background: var(--glass-hover); color: var(--text-primary); transform: translateX(3px); }
+.nav-item.active { background: linear-gradient(90deg, rgba(59,130,246,0.18), rgba(139,92,246,0.10)); color: var(--accent-blue); border-color: rgba(59,130,246,0.2); }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 20%; bottom: 20%; width: 3px; border-radius: 0 4px 4px 0; background: var(--accent-blue); }
+.badge { margin-left: auto; background: var(--accent-blue); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 1px 7px; border-radius: 99px; min-width: 20px; text-align: center; }
+.sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--glass-border); }
+.api-status { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); padding: 8px 10px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); transition: background 0.3s; flex-shrink: 0; }
+.status-dot.active { background: var(--accent-emerald); box-shadow: 0 0 8px var(--accent-emerald); }
+
+/* ── Mobile Topbar ── */
+.topbar { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 200; height: 60px; align-items: center; padding: 0 16px; gap: 12px; background: rgba(7,11,24,0.9); border-bottom: 1px solid var(--glass-border); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.topbar-logo { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 1rem; flex: 1; color: var(--accent-blue); }
+.topbar-logo svg { width: 20px; height: 20px; }
+.menu-btn, .topbar-save-btn { width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--glass-bg); color: var(--text-primary); transition: background var(--transition); }
+.menu-btn svg, .topbar-save-btn svg { width: 20px; height: 20px; }
+.menu-btn:hover, .topbar-save-btn:hover { background: var(--glass-hover); }
+.sidebar-overlay { display: none; position: fixed; inset: 0; z-index: 99; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+
+/* ── Layout ── */
+.main-content { margin-left: var(--sidebar-w); min-height: 100vh; padding: 40px 48px; position: relative; z-index: 1; }
+.page { display: none; }
+.page.active { display: block; animation: page-enter 0.35s ease; }
+@keyframes page-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Hero ── */
+.hero { margin-bottom: 32px; }
+.hero-title { font-family: var(--font-display); font-size: clamp(1.8rem, 3.5vw, 2.6rem); font-weight: 800; line-height: 1.2; margin-bottom: 10px; }
+.gradient-text { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero-sub { color: var(--text-secondary); font-size: 1rem; }
+
+/* ── Glass Card ── */
+.card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: var(--shadow-card); transition: border-color var(--transition), box-shadow var(--transition); }
+.card:hover { border-color: rgba(255,255,255,0.14); box-shadow: var(--shadow-card), 0 0 40px rgba(59,130,246,0.06); }
+
+/* ── Input Card ── */
+.input-card { padding: 0; margin-bottom: 24px; overflow: hidden; }
+.card-header { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid var(--glass-border); font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.02em; }
+.card-header svg { width: 16px; height: 16px; }
+.clear-btn { margin-left: auto; width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all var(--transition); }
+.clear-btn svg { width: 14px; height: 14px; }
+.clear-btn:hover { background: rgba(255,255,255,0.07); color: var(--text-primary); }
+.study-textarea { width: 100%; background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 0.95rem; line-height: 1.7; resize: none; padding: 18px 22px; min-height: 160px; caret-color: var(--accent-blue); }
+.study-textarea::placeholder { color: var(--text-muted); }
+.input-footer { padding: 12px 20px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--glass-border); }
+.char-count { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+.topic-chips { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.chip-label { font-size: 0.75rem; color: var(--text-muted); }
+.chip { font-size: 0.73rem; padding: 4px 11px; border-radius: 99px; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: var(--accent-blue); transition: all var(--transition); font-family: inherit; }
+.chip:hover { background: rgba(59,130,246,0.22); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(59,130,246,0.2); }
+
+/* ── Action Buttons ── */
+.action-row { display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+.action-btn { flex: 1; min-width: 140px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 24px; border-radius: var(--radius-md); font-family: var(--font-display); font-size: 0.9rem; font-weight: 600; letter-spacing: 0.01em; color: #fff; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1); border: 1px solid transparent; }
+.action-btn .btn-icon svg { width: 18px; height: 18px; }
+.action-btn:hover { transform: translateY(-3px) scale(1.02); }
+.action-btn:active { transform: translateY(-1px) scale(0.99); }
+.btn-glow { position: absolute; inset: -50%; border-radius: 50%; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.action-btn:hover .btn-glow { opacity: 1; }
+.btn-quiz    { background: linear-gradient(135deg,#2563eb,#3b82f6); box-shadow: 0 4px 20px rgba(59,130,246,0.3); border-color: rgba(59,130,246,0.4); }
+.btn-quiz:hover { box-shadow: 0 8px 32px rgba(59,130,246,0.5); }
+.btn-quiz .btn-glow { background: radial-gradient(circle,rgba(255,255,255,0.12),transparent 60%); }
+.btn-summary { background: linear-gradient(135deg,#7c3aed,#8b5cf6); box-shadow: 0 4px 20px rgba(139,92,246,0.3); border-color: rgba(139,92,246,0.4); }
+.btn-summary:hover { box-shadow: 0 8px 32px rgba(139,92,246,0.5); }
+.btn-summary .btn-glow { background: radial-gradient(circle,rgba(255,255,255,0.12),transparent 60%); }
+.btn-explain { background: linear-gradient(135deg,#0891b2,#06b6d4); box-shadow: 0 4px 20px rgba(6,182,212,0.3); border-color: rgba(6,182,212,0.4); }
+.btn-explain:hover { box-shadow: 0 8px 32px rgba(6,182,212,0.5); }
+.btn-explain .btn-glow { background: radial-gradient(circle,rgba(255,255,255,0.12),transparent 60%); }
+.action-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+/* ── API Key Section ── */
+.api-key-section { margin-bottom: 24px; border-radius: var(--radius-md); background: var(--glass-bg); border: 1px solid var(--glass-border); overflow: hidden; }
+.api-key-toggle { display: flex; align-items: center; gap: 10px; padding: 13px 18px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); transition: background var(--transition); }
+.api-key-toggle svg { width: 16px; height: 16px; flex-shrink: 0; }
+.api-key-toggle:hover { background: var(--glass-hover); }
+#api-chevron { margin-left: auto; transition: transform var(--transition); }
+#api-chevron.open { transform: rotate(180deg); }
+.api-key-body { display: none; padding: 0 18px 16px; }
+.api-key-body.open { display: block; animation: slide-down 0.2s ease; }
+@keyframes slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.api-key-field { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); color: var(--text-primary); padding: 10px 14px; font-size: 0.88rem; outline: none; transition: border-color var(--transition); margin-bottom: 10px; }
+.api-key-field:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+.api-note { display: flex; align-items: center; gap: 7px; font-size: 0.76rem; color: var(--text-muted); }
+.api-note svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--accent-emerald); }
+
+/* ── Loading Card ── */
+.loading-card { border-radius: var(--radius-lg); background: var(--glass-bg); border: 1px solid var(--glass-border); padding: 48px 24px; text-align: center; margin-bottom: 24px; }
+.loading-spinner { position: relative; width: 64px; height: 64px; margin: 0 auto 20px; }
+.spinner-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent; animation: spin 1.4s linear infinite; }
+.spinner-ring:nth-child(1) { border-top-color: var(--accent-blue); }
+.spinner-ring.ring-2 { inset: 8px; border-top-color: var(--accent-purple); animation-duration: 1.1s; animation-direction: reverse; }
+.spinner-ring.ring-3 { inset: 16px; border-top-color: var(--accent-cyan); animation-duration: 0.9s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px; font-weight: 500; }
+.loading-bar { width: 200px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 99px; margin: 0 auto; overflow: hidden; }
+.loading-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); border-radius: 99px; animation: loading-sweep 1.6s ease-in-out infinite; }
+@keyframes loading-sweep { 0% { width: 0%; margin-left: 0; } 50% { width: 70%; margin-left: 15%; } 100% { width: 0%; margin-left: 100%; } }
+
+/* ── Output Card ── */
+.output-card { border-radius: var(--radius-lg); background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: var(--shadow-card); margin-bottom: 32px; animation: output-pop 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes output-pop { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.output-header { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--glass-border); }
+.output-type-badge { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 0.9rem; }
+.output-type-badge svg { width: 18px; height: 18px; }
+.output-actions { margin-left: auto; display: flex; gap: 6px; }
+.icon-btn { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-secondary); transition: all var(--transition); }
+.icon-btn svg { width: 15px; height: 15px; }
+.icon-btn:hover { background: var(--glass-hover); color: var(--text-primary); transform: scale(1.08); }
+.output-body { padding: 22px; }
+
+/* ── Quiz ── */
+.quiz-container { display: flex; flex-direction: column; gap: 20px; }
+.quiz-question { background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 18px 20px; animation: q-enter 0.3s ease both; }
+@keyframes q-enter { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+.quiz-question:nth-child(1){animation-delay:.05s} .quiz-question:nth-child(2){animation-delay:.10s} .quiz-question:nth-child(3){animation-delay:.15s} .quiz-question:nth-child(4){animation-delay:.20s} .quiz-question:nth-child(5){animation-delay:.25s}
+.q-num { font-size: 0.72rem; font-weight: 700; color: var(--accent-blue); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+.q-text { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin-bottom: 14px; line-height: 1.5; }
+.q-options { display: flex; flex-direction: column; gap: 8px; }
+.q-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border); background: rgba(255,255,255,0.02); cursor: pointer; transition: all var(--transition); text-align: left; color: var(--text-secondary); font-size: 0.88rem; width: 100%; }
+.q-option:hover { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.3); color: var(--text-primary); transform: translateX(4px); }
+.q-option.correct { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); color: var(--accent-emerald); }
+.q-option.wrong { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #f87171; }
+.opt-letter { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.quiz-score { margin-top: 20px; padding: 16px 20px; border-radius: var(--radius-md); background: linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1)); border: 1px solid rgba(139,92,246,0.2); font-weight: 600; font-size: 0.95rem; text-align: center; display: none; }
+
+/* ── Summary ── */
+.summary-list { display: flex; flex-direction: column; gap: 10px; }
+.summary-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.15); border-left: 3px solid var(--accent-purple); animation: s-enter 0.3s ease both; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; }
+.summary-item:nth-child(odd){border-left-color:var(--accent-blue)} .summary-item:nth-child(3n){border-left-color:var(--accent-cyan)}
+@keyframes s-enter { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+.summary-item:nth-child(1){animation-delay:.04s} .summary-item:nth-child(2){animation-delay:.08s} .summary-item:nth-child(3){animation-delay:.12s} .summary-item:nth-child(4){animation-delay:.16s} .summary-item:nth-child(5){animation-delay:.20s}
+.summary-bullet { width: 22px; height: 22px; border-radius: 6px; background: rgba(139,92,246,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.72rem; font-weight: 800; color: var(--accent-purple); }
+
+/* ── Explain ── */
+.explain-steps { display: flex; flex-direction: column; gap: 14px; }
+.explain-step { display: flex; gap: 16px; align-items: flex-start; animation: e-enter 0.3s ease both; }
+@keyframes e-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.explain-step:nth-child(1){animation-delay:.04s} .explain-step:nth-child(2){animation-delay:.08s} .explain-step:nth-child(3){animation-delay:.12s} .explain-step:nth-child(4){animation-delay:.16s} .explain-step:nth-child(5){animation-delay:.20s}
+.step-num { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; color: #fff; flex-shrink: 0; box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
+.step-title { font-weight: 700; font-size: 0.92rem; margin-bottom: 4px; color: var(--text-primary); }
+.step-desc { font-size: 0.87rem; color: var(--text-secondary); line-height: 1.65; }
+
+/* ── Saved Notes ── */
+.page-heading { margin-bottom: 28px; }
+.page-heading h2 { font-family: var(--font-display); font-size: 1.8rem; font-weight: 800; margin-bottom: 6px; }
+.page-heading p { color: var(--text-secondary); font-size: 0.9rem; }
+.saved-list { display: flex; flex-direction: column; gap: 16px; }
+.empty-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 64px 24px; color: var(--text-muted); text-align: center; }
+.empty-state svg { width: 48px; height: 48px; opacity: 0.5; }
+.saved-item { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 18px 22px; animation: output-pop 0.3s ease; }
+.saved-item-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.saved-type-badge { font-size: 0.73rem; font-weight: 700; padding: 3px 9px; border-radius: 99px; letter-spacing: 0.05em; text-transform: uppercase; }
+.badge-quiz    { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+.badge-summary { background: rgba(139,92,246,0.15); color: var(--accent-purple); }
+.badge-explain { background: rgba(6,182,212,0.15); color: var(--accent-cyan); }
+.saved-topic { font-weight: 600; font-size: 0.88rem; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved-date { font-size: 0.75rem; color: var(--text-muted); }
+.saved-preview { font-size: 0.83rem; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 12px; }
+.saved-item-footer { display: flex; gap: 8px; }
+.saved-action-btn { font-size: 0.78rem; padding: 5px 13px; border-radius: 6px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-secondary); transition: all var(--transition); }
+.saved-action-btn:hover { background: var(--glass-hover); color: var(--text-primary); }
+.saved-action-btn.delete:hover { border-color: rgba(239,68,68,0.4); color: #f87171; }
+
+/* ── Settings ── */
+.settings-list { display: flex; flex-direction: column; gap: 14px; }
+.settings-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 18px 22px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.settings-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 3px; }
+.settings-desc { font-size: 0.8rem; color: var(--text-secondary); }
+.settings-select { background: rgba(0,0,0,0.35); border: 1px solid var(--glass-border); color: var(--text-primary); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.85rem; outline: none; cursor: pointer; transition: border-color var(--transition); min-width: 160px; }
+.settings-select:focus { border-color: var(--accent-blue); }
+.settings-select option { background: #0d1530; }
+.danger-btn { padding: 8px 18px; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #f87171; transition: all var(--transition); }
+.danger-btn:hover { background: rgba(239,68,68,0.2); box-shadow: 0 4px 14px rgba(239,68,68,0.2); }
+
+/* ── Toast ── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; padding: 11px 22px; border-radius: 99px; background: rgba(30,40,70,0.95); border: 1px solid var(--glass-border); color: var(--text-primary); font-size: 0.85rem; font-weight: 500; z-index: 1000; pointer-events: none; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); transition: all 0.3s ease; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Animations ── */
+.fade-in { animation: fade-in 0.5s ease both; }
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Responsive ── */
+@media (max-width: 680px) {
+  .sidebar { transform: translateX(-100%); z-index: 300; }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.show { display: block; }
+  .topbar { display: flex; }
+  .main-content { margin-left: 0; padding: 80px 16px 32px; }
+  .action-row { flex-direction: column; }
+  .action-btn { min-width: unset; }
+  .hero-title { font-size: 1.6rem; }
+  .settings-row { flex-direction: column; align-items: flex-start; }
+  .settings-select { width: 100%; }
+  .topic-chips { display: none; }
+}
+@media (max-width: 900px) and (min-width: 681px) {
+  .main-content { padding: 32px 28px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Background orbs -->
+<div class="bg-orbs" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><i data-lucide="brain-circuit"></i></div>
+    <span class="logo-text">StudyAI</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" data-page="home" onclick="navigate(this)">
+      <i data-lucide="home"></i><span>Home</span>
+    </a>
+    <a href="#" class="nav-item" data-page="saved" onclick="navigate(this)">
+      <i data-lucide="bookmark"></i><span>Saved Notes</span>
+      <span class="badge" id="saved-badge">0</span>
+    </a>
+    <a href="#" class="nav-item" data-page="settings" onclick="navigate(this)">
+      <i data-lucide="settings-2"></i><span>Settings</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="api-status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">No API Key</span>
+    </div>
+  </div>
+</aside>
+
+<!-- Mobile topbar -->
+<header class="topbar" id="topbar">
+  <button class="menu-btn" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+  <div class="topbar-logo"><i data-lucide="brain-circuit"></i><span>StudyAI</span></div>
+  <button class="topbar-save-btn" onclick="saveCurrentResult()" title="Save"><i data-lucide="bookmark-plus"></i></button>
+</header>
+
+<!-- Main -->
+<main class="main-content">
+
+  <!-- HOME -->
+  <section class="page active" id="page-home">
+    <div class="hero fade-in">
+      <h1 class="hero-title">What are you <span class="gradient-text">studying</span> today?</h1>
+      <p class="hero-sub">Paste your notes or type a topic — let AI do the heavy lifting.</p>
+    </div>
+
+    <div class="card input-card fade-in delay-1">
+      <div class="card-header">
+        <i data-lucide="notebook-pen"></i><span>Your Study Material</span>
+        <button class="clear-btn" onclick="clearInput()"><i data-lucide="x"></i></button>
+      </div>
+      <textarea id="study-input" class="study-textarea" placeholder="Paste your notes, textbook excerpt, or type a topic like 'photosynthesis' or 'World War II'…" rows="8" oninput="handleInput()"></textarea>
+      <div class="input-footer">
+        <span class="char-count" id="char-count">0 characters</span>
+        <div class="topic-chips">
+          <span class="chip-label">Try:</span>
+          <button class="chip" onclick="setTopic('The water cycle and evaporation')">Water Cycle</button>
+          <button class="chip" onclick="setTopic('Photosynthesis: how plants make food using sunlight, CO2 and water')">Photosynthesis</button>
+          <button class="chip" onclick="setTopic('The French Revolution: causes, key events, and aftermath')">French Revolution</button>
+          <button class="chip" onclick="setTopic('Newtons three laws of motion with examples')">Newton's Laws</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-row fade-in delay-2">
+      <button class="action-btn btn-quiz" onclick="runAction('quiz')" id="btn-quiz">
+        <span class="btn-icon"><i data-lucide="help-circle"></i></span>
+        <span>Generate Quiz</span><span class="btn-glow"></span>
+      </button>
+      <button class="action-btn btn-summary" onclick="runAction('summary')" id="btn-summary">
+        <span class="btn-icon"><i data-lucide="list-checks"></i></span>
+        <span>Summarize</span><span class="btn-glow"></span>
+      </button>
+      <button class="action-btn btn-explain" onclick="runAction('explain')" id="btn-explain">
+        <span class="btn-icon"><i data-lucide="lightbulb"></i></span>
+        <span>Explain Simply</span><span class="btn-glow"></span>
+      </button>
+    </div>
+
+    <!-- API Key -->
+    <div class="api-key-section fade-in delay-3">
+      <div class="api-key-toggle" onclick="toggleApiKey()">
+        <i data-lucide="key-round"></i><span>Mistral API Key</span>
+        <i data-lucide="chevron-down" id="api-chevron"></i>
+      </div>
+      <div class="api-key-body" id="api-key-body">
+        <input type="password" id="api-key-input" class="api-key-field" placeholder="Enter your Mistral API key…" oninput="updateApiKeyStatus()" />
+        <p class="api-note"><i data-lucide="shield-check"></i>Stored only in browser memory — never sent anywhere except Mistral's API.</p>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-card" id="loading-card" style="display:none">
+      <div class="loading-spinner">
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring ring-2"></div>
+        <div class="spinner-ring ring-3"></div>
+      </div>
+      <p class="loading-text" id="loading-text">Generating…</p>
+      <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+    </div>
+
+    <!-- Output -->
+    <div class="output-card" id="output-card" style="display:none">
+      <div class="output-header">
+        <div class="output-type-badge" id="output-badge">
+          <i id="output-icon" data-lucide="help-circle"></i>
+          <span id="output-label">Result</span>
+        </div>
+        <div class="output-actions">
+          <button class="icon-btn" onclick="saveCurrentResult()" title="Save"><i data-lucide="bookmark-plus"></i></button>
+          <button class="icon-btn" onclick="copyResult()" title="Copy"><i data-lucide="copy"></i></button>
+          <button class="icon-btn" onclick="closeOutput()" title="Close"><i data-lucide="x"></i></button>
+        </div>
+      </div>
+      <div class="output-body" id="output-body"></div>
+    </div>
+  </section>
+
+  <!-- SAVED -->
+  <section class="page" id="page-saved">
+    <div class="page-heading">
+      <h2>Saved Notes</h2>
+      <p>Your bookmarked quizzes, summaries and explanations.</p>
+    </div>
+    <div id="saved-list" class="saved-list">
+      <div class="empty-state" id="saved-empty">
+        <i data-lucide="folder-open"></i>
+        <p>Nothing saved yet. Generate some content and hit the bookmark icon!</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="page" id="page-settings">
+    <div class="page-heading">
+      <h2>Settings</h2>
+      <p>Customize your experience.</p>
+    </div>
+    <div class="settings-list">
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="settings-label">Mistral Model</div><div class="settings-desc">Choose which model powers your results</div></div>
+          <select class="settings-select" id="model-select">
+            <option value="mistral-small-latest">Mistral Small (Fast)</option>
+            <option value="mistral-medium-latest" selected>Mistral Medium</option>
+            <option value="mistral-large-latest">Mistral Large (Best)</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="settings-label">Quiz Length</div><div class="settings-desc">Number of questions per quiz</div></div>
+          <select class="settings-select" id="quiz-length-select">
+            <option value="3">3 Questions</option>
+            <option value="5" selected>5 Questions</option>
+            <option value="8">8 Questions</option>
+            <option value="10">10 Questions</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="settings-label">Response Language</div><div class="settings-desc">Language for AI-generated content</div></div>
+          <select class="settings-select" id="language-select">
+            <option value="English" selected>English</option>
+            <option value="French">Français</option>
+            <option value="Spanish">Español</option>
+            <option value="German">Deutsch</option>
+            <option value="Arabic">العربية</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div><div class="settings-label">Clear All Saved Notes</div><div class="settings-desc">Permanently delete all saved content</div></div>
+          <button class="danger-btn" onclick="clearAllSaved()">Clear All</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<script>
+// ── State ──
+let currentResult = null;
+let savedNotes    = [];
+let quizState     = null;
+let apiKeyOpen    = false;
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  lucide.createIcons();
+  loadSavedNotes();
+  updateSavedBadge();
+  updateApiKeyStatus();
+});
+
+// ── Navigation ──
+function navigate(el) {
+  event.preventDefault();
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  const page = el.dataset.page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  if (page === 'saved') renderSavedList();
+  closeSidebar();
+}
+
+// ── Sidebar ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ── Input helpers ──
+function handleInput() {
+  const v = document.getElementById('study-input').value;
+  document.getElementById('char-count').textContent = `${v.length.toLocaleString()} character${v.length !== 1 ? 's' : ''}`;
+}
+function clearInput() { document.getElementById('study-input').value = ''; handleInput(); }
+function setTopic(t) { document.getElementById('study-input').value = t; handleInput(); document.getElementById('study-input').focus(); }
+
+// ── API Key ──
+function toggleApiKey() {
+  apiKeyOpen = !apiKeyOpen;
+  document.getElementById('api-key-body').classList.toggle('open', apiKeyOpen);
+  document.getElementById('api-chevron').classList.toggle('open', apiKeyOpen);
+}
+function updateApiKeyStatus() {
+  const key = getApiKey();
+  document.getElementById('status-dot').classList.toggle('active', !!key);
+  document.getElementById('status-text').textContent = key ? 'API Key Set' : 'No API Key';
+}
+function getApiKey() { return (document.getElementById('api-key-input')?.value || '').trim(); }
+
+// ── Main action ──
+async function runAction(type) {
+  const input = document.getElementById('study-input').value.trim();
+  if (!input) { showToast('Please enter some study material first.'); document.getElementById('study-input').focus(); return; }
+  const apiKey = getApiKey();
+  if (!apiKey) { showToast('Please enter your Mistral API key first.'); if (!apiKeyOpen) toggleApiKey(); return; }
+
+  setButtonsDisabled(true);
+  showLoading(type);
+  closeOutput();
+
+  try {
+    let html, plainText;
+    if (type === 'quiz')    { const d = await callMistral(buildQuizPrompt(input), apiKey);    ({ html, plainText } = renderQuiz(d, input)); }
+    if (type === 'summary') { const d = await callMistral(buildSummaryPrompt(input), apiKey); ({ html, plainText } = renderSummary(d, input)); }
+    if (type === 'explain') { const d = await callMistral(buildExplainPrompt(input), apiKey); ({ html, plainText } = renderExplain(d, input)); }
+    hideLoading();
+    showOutput(type, html, input, plainText);
+  } catch (err) {
+    hideLoading();
+    showToast(`Error: ${err.message}`);
+  } finally {
+    setButtonsDisabled(false);
+  }
+}
+
+// ── Mistral API ──
+async function callMistral(prompt, apiKey) {
+  const model    = document.getElementById('model-select')?.value    || 'mistral-medium-latest';
+  const language = document.getElementById('language-select')?.value || 'English';
+  const system   = `You are StudyAI, an expert educational assistant. Always respond in ${language}. Return ONLY valid JSON with no markdown fences or extra text.`;
+
+  const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model, temperature: 0.7, max_tokens: 1800, messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }] })
+  });
+
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.message || `HTTP ${res.status}`); }
+  const raw     = await res.json();
+  const text    = raw.choices?.[0]?.message?.content || '';
+  const cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  try { return JSON.parse(cleaned); } catch { throw new Error('Mistral returned invalid JSON. Try again or switch models.'); }
+}
+
+// ── Prompts ──
+function buildQuizPrompt(text) {
+  const n = document.getElementById('quiz-length-select')?.value || 5;
+  return `Create a ${n}-question multiple-choice quiz based on this study material:\n"""\n${text}\n"""\n\nReturn JSON exactly:\n{"title":"short topic","questions":[{"question":"...","options":["A) ...","B) ...","C) ...","D) ..."],"correctIndex":0}]}\n\nRules: 4 options each, correctIndex is 0-based, test real understanding, plausible distractors.`;
+}
+function buildSummaryPrompt(text) {
+  return `Summarize this study material into 5-7 concise bullet points:\n"""\n${text}\n"""\n\nReturn JSON exactly:\n{"title":"short topic","points":[{"heading":"2-5 word heading","detail":"1-2 sentence explanation"}]}\n\nFocus on the most important concepts. Avoid jargon.`;
+}
+function buildExplainPrompt(text) {
+  return `Explain this topic simply, as if teaching a 14-year-old:\n"""\n${text}\n"""\n\nReturn JSON exactly:\n{"title":"short topic","intro":"one sentence hook","steps":[{"title":"step title","explanation":"2-3 friendly sentences with analogies"}]}\n\n4-6 steps, use everyday analogies, define any jargon.`;
+}
+
+// ── Renderers ──
+function renderQuiz(data, topic) {
+  const questions = data.questions || [];
+  quizState = { questions, answers: new Array(questions.length).fill(null), topic };
+  let html = `<div class="quiz-container">`;
+  questions.forEach((q, qi) => {
+    html += `<div class="quiz-question" id="q-${qi}">
+      <div class="q-num">Question ${qi+1} of ${questions.length}</div>
+      <div class="q-text">${esc(q.question)}</div>
+      <div class="q-options">${q.options.map((o,oi) => `
+        <button class="q-option" onclick="selectAnswer(${qi},${oi})">
+          <span class="opt-letter">${'ABCD'[oi]}</span>
+          <span>${esc(o.replace(/^[A-D]\)\s*/i,''))}</span>
+        </button>`).join('')}
+      </div>
+    </div>`;
+  });
+  html += `<div class="quiz-score" id="quiz-score"></div></div>`;
+  const plain = questions.map((q,i) => `Q${i+1}: ${q.question}\n${q.options.map((o,oi)=>` ${o}${oi===q.correctIndex?' ✓':''}`).join('\n')}`).join('\n\n');
+  return { html, plainText: plain };
+}
+
+function selectAnswer(qi, oi) {
+  if (!quizState || quizState.answers[qi] !== null) return;
+  quizState.answers[qi] = oi;
+  const correct = quizState.questions[qi].correctIndex;
+  const opts    = document.getElementById(`q-${qi}`).querySelectorAll('.q-option');
+  opts.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correct) btn.classList.add('correct');
+    if (i === oi && i !== correct) btn.classList.add('wrong');
+  });
+  if (quizState.answers.every(a => a !== null)) {
+    const score = quizState.answers.filter((a,i) => a === quizState.questions[i].correctIndex).length;
+    const total = quizState.questions.length;
+    const pct   = Math.round(score/total*100);
+    const el    = document.getElementById('quiz-score');
+    el.style.display = 'block';
+    el.innerHTML = `${pct>=80?'🎉':pct>=60?'👍':'📚'} You scored <strong>${score}/${total}</strong> (${pct}%) — ${pct>=80?'Excellent!':pct>=60?'Good effort!':'Keep studying!'}`;
+  }
+}
+
+function renderSummary(data, topic) {
+  const pts = data.points || [];
+  let html = `<div class="summary-list">`;
+  let plain = '';
+  pts.forEach((p,i) => {
+    html  += `<div class="summary-item" style="animation-delay:${i*.06}s"><div class="summary-bullet">${i+1}</div><div><strong>${esc(p.heading)}</strong> — ${esc(p.detail)}</div></div>`;
+    plain += `• ${p.heading}: ${p.detail}\n`;
+  });
+  html += `</div>`;
+  return { html, plainText: plain.trim() };
+}
+
+function renderExplain(data, topic) {
+  const steps = data.steps || [];
+  let html  = data.intro ? `<p style="color:var(--text-secondary);margin-bottom:18px;font-style:italic;font-size:.92rem">${esc(data.intro)}</p>` : '';
+  let plain = data.intro ? `${data.intro}\n\n` : '';
+  html += `<div class="explain-steps">`;
+  steps.forEach((s,i) => {
+    html  += `<div class="explain-step" style="animation-delay:${i*.07}s"><div class="step-num">${i+1}</div><div class="step-body"><div class="step-title">${esc(s.title)}</div><div class="step-desc">${esc(s.explanation)}</div></div></div>`;
+    plain += `${i+1}. ${s.title}\n${s.explanation}\n\n`;
+  });
+  html += `</div>`;
+  return { html, plainText: plain.trim() };
+}
+
+// ── Output panel ──
+const CFG = {
+  quiz:    { label: 'Quiz',        icon: 'help-circle', color: 'var(--accent-blue)' },
+  summary: { label: 'Summary',     icon: 'list-checks', color: 'var(--accent-purple)' },
+  explain: { label: 'Explanation', icon: 'lightbulb',   color: 'var(--accent-cyan)' }
+};
+function showOutput(type, html, topic, plainText) {
+  const c = CFG[type];
+  currentResult = { type, topic, html, plainText };
+  document.getElementById('output-badge').style.color = c.color;
+  document.getElementById('output-label').textContent  = c.label;
+  document.getElementById('output-icon').setAttribute('data-lucide', c.icon);
+  lucide.createIcons();
+  document.getElementById('output-body').innerHTML = html;
+  document.getElementById('output-card').style.display = 'block';
+  lucide.createIcons();
+  setTimeout(() => document.getElementById('output-card').scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+}
+function closeOutput()  { document.getElementById('output-card').style.display = 'none'; currentResult = null; quizState = null; }
+
+// ── Loading ──
+function showLoading(type) {
+  const msgs = { quiz:'Generating your quiz…', summary:'Summarising your notes…', explain:'Building your explanation…' };
+  document.getElementById('loading-text').textContent = msgs[type] || 'Thinking…';
+  document.getElementById('loading-card').style.display = 'block';
+  document.getElementById('loading-card').scrollIntoView({ behavior:'smooth', block:'center' });
+}
+function hideLoading() { document.getElementById('loading-card').style.display = 'none'; }
+
+// ── Buttons ──
+function setButtonsDisabled(d) { ['btn-quiz','btn-summary','btn-explain'].forEach(id => document.getElementById(id).disabled = d); }
+
+// ── Save / Copy ──
+function saveCurrentResult() {
+  if (!currentResult) { showToast('Nothing to save yet!'); return; }
+  savedNotes.unshift({ ...currentResult, id: Date.now(), date: new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) });
+  persistSaved(); updateSavedBadge(); showToast('Saved! 🔖');
+}
+function copyResult() {
+  if (!currentResult?.plainText) { showToast('Nothing to copy.'); return; }
+  navigator.clipboard.writeText(currentResult.plainText).then(() => showToast('Copied! 📋')).catch(() => showToast('Copy failed.'));
+}
+
+// ── Saved notes ──
+function persistSaved()    { try { sessionStorage.setItem('studyai', JSON.stringify(savedNotes)); } catch {} }
+function loadSavedNotes()  { try { const r = sessionStorage.getItem('studyai'); if (r) savedNotes = JSON.parse(r); } catch { savedNotes = []; } }
+function updateSavedBadge(){ document.getElementById('saved-badge').textContent = savedNotes.length; }
+
+function renderSavedList() {
+  const container = document.getElementById('saved-list');
+  document.getElementById('saved-empty').style.display = savedNotes.length ? 'none' : 'flex';
+  container.querySelectorAll('.saved-item').forEach(el => el.remove());
+  savedNotes.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'saved-item';
+    el.innerHTML = `
+      <div class="saved-item-header">
+        <span class="saved-type-badge badge-${item.type}">${CFG[item.type]?.label||item.type}</span>
+        <span class="saved-topic" title="${esc(item.topic)}">${esc(item.topic)}</span>
+        <span class="saved-date">${item.date}</span>
+      </div>
+      <div class="saved-preview">${item.plainText?.slice(0,180)||''}…</div>
+      <div class="saved-item-footer">
+        <button class="saved-action-btn" onclick="loadSavedItem(${item.id})">View</button>
+        <button class="saved-action-btn delete" onclick="deleteSavedItem(${item.id})">Delete</button>
+      </div>`;
+    container.appendChild(el);
+  });
+  lucide.createIcons();
+}
+function loadSavedItem(id) {
+  const item = savedNotes.find(n => n.id === id);
+  if (!item) return;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('[data-page="home"]').classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-home').classList.add('active');
+  document.getElementById('study-input').value = item.topic;
+  handleInput();
+  currentResult = item;
+  showOutput(item.type, item.html, item.topic, item.plainText);
+}
+function deleteSavedItem(id) { savedNotes = savedNotes.filter(n => n.id !== id); persistSaved(); updateSavedBadge(); renderSavedList(); showToast('Deleted.'); }
+function clearAllSaved() {
+  if (!confirm('Delete all saved notes?')) return;
+  savedNotes = []; persistSaved(); updateSavedBadge(); renderSavedList(); showToast('All notes cleared.');
+}
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Util ──
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+</body>
+</html>
