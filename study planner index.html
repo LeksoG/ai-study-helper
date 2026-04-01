@@ -147,21 +147,6 @@ input, textarea, select { font-family: inherit; }
 .btn-explain .btn-glow { background: radial-gradient(circle,rgba(255,255,255,0.12),transparent 60%); }
 .action-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 
-/* ── API Key Section ── */
-.api-key-section { margin-bottom: 24px; border-radius: var(--radius-md); background: var(--glass-bg); border: 1px solid var(--glass-border); overflow: hidden; }
-.api-key-toggle { display: flex; align-items: center; gap: 10px; padding: 13px 18px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); transition: background var(--transition); }
-.api-key-toggle svg { width: 16px; height: 16px; flex-shrink: 0; }
-.api-key-toggle:hover { background: var(--glass-hover); }
-#api-chevron { margin-left: auto; transition: transform var(--transition); }
-#api-chevron.open { transform: rotate(180deg); }
-.api-key-body { display: none; padding: 0 18px 16px; }
-.api-key-body.open { display: block; animation: slide-down 0.2s ease; }
-@keyframes slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-.api-key-field { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); color: var(--text-primary); padding: 10px 14px; font-size: 0.88rem; outline: none; transition: border-color var(--transition); margin-bottom: 10px; }
-.api-key-field:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
-.api-note { display: flex; align-items: center; gap: 7px; font-size: 0.76rem; color: var(--text-muted); }
-.api-note svg { width: 13px; height: 13px; flex-shrink: 0; color: var(--accent-emerald); }
-
 /* ── Loading Card ── */
 .loading-card { border-radius: var(--radius-lg); background: var(--glass-bg); border: 1px solid var(--glass-border); padding: 48px 24px; text-align: center; margin-bottom: 24px; }
 .loading-spinner { position: relative; width: 64px; height: 64px; margin: 0 auto 20px; }
@@ -317,8 +302,8 @@ input, textarea, select { font-family: inherit; }
   </nav>
   <div class="sidebar-footer">
     <div class="api-status">
-      <span class="status-dot" id="status-dot"></span>
-      <span id="status-text">No API Key</span>
+      <span class="status-dot active" id="status-dot"></span>
+      <span id="status-text">AI Ready</span>
     </div>
   </div>
 </aside>
@@ -371,18 +356,6 @@ input, textarea, select { font-family: inherit; }
         <span class="btn-icon"><i data-lucide="lightbulb"></i></span>
         <span>Explain Simply</span><span class="btn-glow"></span>
       </button>
-    </div>
-
-    <!-- API Key -->
-    <div class="api-key-section fade-in delay-3">
-      <div class="api-key-toggle" onclick="toggleApiKey()">
-        <i data-lucide="key-round"></i><span>Mistral API Key</span>
-        <i data-lucide="chevron-down" id="api-chevron"></i>
-      </div>
-      <div class="api-key-body" id="api-key-body">
-        <input type="password" id="api-key-input" class="api-key-field" placeholder="Enter your Mistral API key…" oninput="updateApiKeyStatus()" />
-        <p class="api-note"><i data-lucide="shield-check"></i>Stored only in browser memory — never sent anywhere except Mistral's API.</p>
-      </div>
     </div>
 
     <!-- Loading -->
@@ -486,7 +459,6 @@ input, textarea, select { font-family: inherit; }
 let currentResult = null;
 let savedNotes    = [];
 let quizState     = null;
-let apiKeyOpen    = false;
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
@@ -526,25 +498,10 @@ function handleInput() {
 function clearInput() { document.getElementById('study-input').value = ''; handleInput(); }
 function setTopic(t) { document.getElementById('study-input').value = t; handleInput(); document.getElementById('study-input').focus(); }
 
-// ── API Key ──
-function toggleApiKey() {
-  apiKeyOpen = !apiKeyOpen;
-  document.getElementById('api-key-body').classList.toggle('open', apiKeyOpen);
-  document.getElementById('api-chevron').classList.toggle('open', apiKeyOpen);
-}
-function updateApiKeyStatus() {
-  const key = getApiKey();
-  document.getElementById('status-dot').classList.toggle('active', !!key);
-  document.getElementById('status-text').textContent = key ? 'API Key Set' : 'No API Key';
-}
-function getApiKey() { return (document.getElementById('api-key-input')?.value || '').trim(); }
-
 // ── Main action ──
 async function runAction(type) {
   const input = document.getElementById('study-input').value.trim();
   if (!input) { showToast('Please enter some study material first.'); document.getElementById('study-input').focus(); return; }
-  const apiKey = getApiKey();
-  if (!apiKey) { showToast('Please enter your Mistral API key first.'); if (!apiKeyOpen) toggleApiKey(); return; }
 
   setButtonsDisabled(true);
   showLoading(type);
@@ -552,9 +509,9 @@ async function runAction(type) {
 
   try {
     let html, plainText;
-    if (type === 'quiz')    { const d = await callMistral(buildQuizPrompt(input), apiKey);    ({ html, plainText } = renderQuiz(d, input)); }
-    if (type === 'summary') { const d = await callMistral(buildSummaryPrompt(input), apiKey); ({ html, plainText } = renderSummary(d, input)); }
-    if (type === 'explain') { const d = await callMistral(buildExplainPrompt(input), apiKey); ({ html, plainText } = renderExplain(d, input)); }
+    if (type === 'quiz')    { const d = await callMistral(buildQuizPrompt(input));    ({ html, plainText } = renderQuiz(d, input)); }
+    if (type === 'summary') { const d = await callMistral(buildSummaryPrompt(input)); ({ html, plainText } = renderSummary(d, input)); }
+    if (type === 'explain') { const d = await callMistral(buildExplainPrompt(input)); ({ html, plainText } = renderExplain(d, input)); }
     hideLoading();
     showOutput(type, html, input, plainText);
   } catch (err) {
@@ -566,18 +523,18 @@ async function runAction(type) {
 }
 
 // ── Mistral API ──
-async function callMistral(prompt, apiKey) {
+async function callMistral(prompt) {
   const model    = document.getElementById('model-select')?.value    || 'mistral-medium-latest';
   const language = document.getElementById('language-select')?.value || 'English';
   const system   = `You are StudyAI, an expert educational assistant. Always respond in ${language}. Return ONLY valid JSON with no markdown fences or extra text.`;
 
-  const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+  const res = await fetch('/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({ model, temperature: 0.7, max_tokens: 1800, messages: [{ role: 'system', content: system }, { role: 'user', content: prompt }] })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, system, prompt })
   });
 
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.message || `HTTP ${res.status}`); }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error || `HTTP ${res.status}`); }
   const raw     = await res.json();
   const text    = raw.choices?.[0]?.message?.content || '';
   const cleaned = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
